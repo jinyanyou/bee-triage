@@ -209,6 +209,19 @@ def set_status(report_id: str, status: str, assigned: Optional[str] = None) -> b
     return cur.rowcount > 0
 
 
+def set_route(report_id: str, route: str, reason: str) -> bool:
+    """저위험 선택지 확정. 자가 대응은 출동이 없으므로 바로 처리완료로 둔다."""
+    if not enabled():
+        return False
+    status = STATUS_DONE if route == "자가대응" else STATUS_PARTNER_PENDING
+    with _connect() as conn:
+        cur = conn.execute(
+            "UPDATE reports SET route = ?, route_reason = ?, status = ? WHERE id = ?",
+            (route, reason, status, report_id),
+        )
+    return cur.rowcount > 0
+
+
 def add_feedback(
     report_id: str,
     actual_grade: Optional[str],
@@ -247,7 +260,7 @@ def kpi() -> Dict[str, Any]:
     if not enabled():
         return {
             "total": 0, "by_route": {}, "by_status": {}, "unknown": 0,
-            "diverted": 0, "diversion_rate": 0.0,
+            "diverted": 0, "self_care": 0, "diversion_rate": 0.0,
             "feedback": {"count": 0, "matched": 0, "accuracy": None, "underestimated": 0},
             "retention_days": RETENTION_DAYS,
         }
@@ -281,13 +294,17 @@ def kpi() -> Dict[str, Any]:
     )
 
     diverted = by_route.get("방역업체", 0) + by_route.get("양봉협회", 0)
+    self_care = by_route.get("자가대응", 0)
+    # 소방력 절감 = 119로 가지 않은 모든 건. 자가대응은 출동 자체를 만들지 않는다.
+    relieved = diverted + self_care
     return {
         "total": total,
         "by_route": by_route,
         "by_status": by_status,
         "unknown": unknown,
         "diverted": diverted,
-        "diversion_rate": round(diverted / total * 100, 1) if total else 0.0,
+        "self_care": self_care,
+        "diversion_rate": round(relieved / total * 100, 1) if total else 0.0,
         "feedback": {
             "count": len(paired),
             "matched": matched,

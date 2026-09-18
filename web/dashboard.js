@@ -37,7 +37,8 @@ function renderKpi(k) {
     { lbl: "총 접수", num: k.total, sub: "누적 신고 건수" },
     { lbl: "119 연계", num: k.by_route["119"] || 0, sub: "실제 출동 필요 판정", cls: "hi" },
     { lbl: "민간 우회", num: k.diverted, sub: "방역업체 + 양봉협회", cls: "good" },
-    { lbl: "소방력 절감률", num: `${k.diversion_rate}%`, sub: "전체 대비 민간 우회 비율", cls: "good" },
+    { lbl: "자가 대응", num: k.self_care || 0, sub: "출동 자체가 발생하지 않은 건", cls: "good" },
+    { lbl: "소방력 절감률", num: `${k.diversion_rate}%`, sub: "119로 가지 않은 비율 (우회 + 자가 대응)", cls: "good" },
     { lbl: "판별불가", num: k.unknown, sub: "보수적으로 119 확인 대상" },
     {
       lbl: "사후 확인 정확도",

@@ -21,6 +21,53 @@ _GRADE_ACTION = {
 }
 
 
+def build_self_care_guide(slots: Slots, vision: VisionResult) -> Dict[str, Any]:
+    """자가 대응 안내.
+
+    저위험으로 판정됐고 시민이 "괜찮다"를 고른 경우에 보여준다.
+    출동을 만들지 않는 유일한 경로이므로 소방력 절감 효과가 가장 크지만,
+    그만큼 **다시 신고해야 하는 조건**을 분명히 적어야 한다.
+    """
+    location = slots.location_type or ""
+    rules = [
+        "벌집을 건드리거나 물을 뿌리지 마세요. 자극하면 집단으로 공격합니다.",
+        "살충제를 직접 뿌리지 마세요. 죽지 않은 벌이 흥분해 더 위험해집니다.",
+        "벌집 주변 2m 안으로 들어가지 말고, 아이와 반려동물이 접근하지 못하게 해주세요.",
+        "벌 근처를 지날 때는 팔을 휘두르지 말고 천천히 물러나세요.",
+    ]
+    if location in ("처마/창틀", "실내"):
+        rules.append("벌집이 있는 쪽 창문은 닫아두고, 방충망에 틈이 없는지 확인해주세요.")
+    if location == "지면":
+        rules.append("땅속 벌집은 잔디를 깎거나 풀을 벨 때 진동으로 자극되기 쉽습니다. 그 구역 작업을 미뤄주세요.")
+    rules.append("어두운 색 옷과 향수·화장품은 벌을 자극합니다. 근처를 지날 때는 밝은 색 옷을 입어주세요.")
+
+    recall = [
+        "벌집 지름이 눈에 띄게 커졌을 때",
+        "벌이 사람 쪽으로 달려들거나 드나드는 개체가 갑자기 늘었을 때",
+        "출입문·창문·통학로처럼 사람이 자주 지나는 동선과 가까워졌을 때",
+        "가족 중 벌 알레르기가 있는 사람이 있다는 것을 알게 됐을 때",
+    ]
+
+    sting = [
+        "신용카드 같은 얇고 단단한 것으로 벌침을 **긁어내세요**. 손가락으로 집어 뽑으면 독이 더 들어갑니다.",
+        "비누와 흐르는 물로 씻고 얼음으로 찜질하세요.",
+        "**숨이 차거나, 어지럽거나, 온몸에 두드러기가 번지면 즉시 119에 신고하세요.** "
+        "아나필락시스는 몇 분 안에 위급해질 수 있습니다.",
+    ]
+
+    return {
+        "title": "그대로 두셔도 됩니다 — 안전 수칙 안내",
+        "summary": (
+            "{}(으)로 판정되어 당장 제거하지 않아도 안전에 큰 지장이 없는 단계입니다. "
+            "다만 벌집은 그대로 두면 계속 자라므로, 아래 상황이 되면 다시 신고해주세요."
+        ).format(vision.species_guess),
+        "rules": rules,
+        "recall_when": recall,
+        "if_stung": sting,
+        "emergency": "지금 당장 쏘였거나 벌이 실내로 들어왔다면 망설이지 말고 119에 신고하세요.",
+    }
+
+
 def sido_of(lat: float, lon: float) -> str:
     """가장 가까운 안전센터의 시도를 신고 지점의 시도로 본다."""
     nearest, best = "", float("inf")
@@ -111,8 +158,23 @@ def build_dispatch(
     companies: List[Dict[str, Any]] = []
     branch: Optional[Dict[str, Any]] = None
     report_summary: Optional[str] = None
+    self_care: Optional[Dict[str, Any]] = None
 
-    if route == "119":
+    if route == "선택":
+        # 두 선택지에 필요한 자료를 모두 실어 보낸다. 시민이 고르는 즉시
+        # 추가 왕복 없이 결과를 보여주기 위해서다.
+        self_care = build_self_care_guide(slots, vision)
+        companies = data_store.nearest_companies(lat, lon)
+        notes.append(
+            "저위험 구간은 시스템이 대신 정하지 않고 신고자가 고릅니다. "
+            "'불안한 정도'는 사람마다 다르기 때문입니다."
+        )
+        if not companies:
+            notes.append(
+                "다만 반경 {:.0f}km 안에 연락 가능한 업체가 없어, 업체 처리를 "
+                "고르셔도 즉시 매칭되지는 않습니다.".format(config.MATCH_MAX_RADIUS_KM)
+            )
+    elif route == "119":
         report_summary = build_report_summary(
             slots, vision, score, route_reason, address_label, lat, lon, fire_center
         )
@@ -144,5 +206,6 @@ def build_dispatch(
         "beekeeping_branch": branch,
         "fire_center": fire_center,
         "report_summary": report_summary,
+        "self_care": self_care,
         "notes": notes,
     }

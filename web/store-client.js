@@ -91,6 +91,18 @@ const BeeStore = (() => {
     return purged().find((r) => r.id === id) || null;
   }
 
+  /** 저위험 선택지 확정. 라우팅과 상태를 함께 바꾼다. */
+  function setRoute(id, route, reason) {
+    const rows = purged();
+    const row = rows.find((r) => r.id === id);
+    if (!row) return false;
+    row.route = route;
+    row.route_reason = reason;
+    row.status = route === "자가대응" ? STATUS.DONE : STATUS.PENDING_PARTNER;
+    writeAll(rows);
+    return true;
+  }
+
   function setStatus(id, status, assigned) {
     const rows = purged();
     const row = rows.find((r) => r.id === id);
@@ -139,6 +151,9 @@ const BeeStore = (() => {
     ).length;
 
     const diverted = (by_route["방역업체"] || 0) + (by_route["양봉협회"] || 0);
+    const selfCare = by_route["자가대응"] || 0;
+    // 소방력 절감 = 119로 가지 않은 모든 건. 자가대응은 출동 자체를 만들지 않는다.
+    const relieved = diverted + selfCare;
     const total = rows.length;
 
     return {
@@ -147,7 +162,8 @@ const BeeStore = (() => {
       by_status,
       unknown: rows.filter((r) => r.risk_grade === "판별불가").length,
       diverted,
-      diversion_rate: total ? Math.round((diverted / total) * 1000) / 10 : 0,
+      self_care: selfCare,
+      diversion_rate: total ? Math.round((relieved / total) * 1000) / 10 : 0,
       feedback: {
         count: paired.length,
         matched,
@@ -172,7 +188,7 @@ const BeeStore = (() => {
     }
   }
 
-  return { STATUS, saveFromAssess, list, get, setStatus, addFeedback, kpi, clear, available };
+  return { STATUS, saveFromAssess, list, get, setRoute, setStatus, addFeedback, kpi, clear, available };
 })();
 
 /* ----------------------------------------------------------------------------
@@ -210,6 +226,18 @@ const BeeReports = {
       return r;
     }
     return this._api(`/api/reports/${id}`);
+  },
+
+  async setRoute(id, route, reason) {
+    if (this.isClient) {
+      if (!BeeStore.setRoute(id, route, reason)) throw new Error("신고를 찾을 수 없습니다.");
+      return { ok: true };
+    }
+    return this._api(`/api/reports/${id}/route`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ route, reason }),
+    });
   },
 
   async setStatus(id, status, assigned) {

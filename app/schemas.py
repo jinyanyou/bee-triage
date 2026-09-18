@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 LocationType = Literal["실내", "실외", "처마/창틀", "지면"]
 RiskSelf = Literal["낮음", "보통", "높음"]
 RiskGrade = Literal["고위험", "중위험", "저위험", "판별불가"]
-RouteKind = Literal["119", "방역업체", "양봉협회"]
+RouteKind = Literal["119", "방역업체", "양봉협회", "선택", "자가대응"]
 
 
 class Slots(BaseModel):
@@ -113,6 +113,11 @@ class AssessRequest(BaseModel):
     address_label: str = ""
 
 
+class RouteRequest(BaseModel):
+    route: RouteKind
+    reason: str = ""
+
+
 class StatusRequest(BaseModel):
     status: str
     assigned: Optional[str] = None
@@ -136,4 +141,5 @@ class AssessResponse(BaseModel):
     beekeeping_branch: Optional[Dict[str, Any]] = None
     fire_center: Optional[FireCenter] = None
     report_summary: Optional[str] = None
+    self_care: Optional[Dict[str, Any]] = None
     notes: List[str] = Field(default_factory=list)

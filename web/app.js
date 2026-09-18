@@ -8,6 +8,7 @@ const state = {
   slots: {},
   busy: false,
   location: null, // {label, lat, lon, source}
+  assess: null,   // 마지막 판정 결과 (선택지 확정에 재사용)
 };
 
 const SLOT_FORMAT = {
@@ -364,16 +365,57 @@ $("assess-btn").addEventListener("click", async () => {
 });
 
 function routeClass(route) {
-  return route === "119" ? "r119" : route === "양봉협회" ? "rbee" : "rprivate";
+  if (route === "119") return "r119";
+  if (route === "양봉협회" || route === "자가대응") return "rbee";
+  if (route === "선택") return "rchoice";
+  return "rprivate";
 }
 
 function routeTitle(route) {
   if (route === "119") return "119 상황실 연계";
   if (route === "양봉협회") return "양봉협회 지회 연계";
+  if (route === "자가대응") return "자가 대응 — 출동 없이 종결";
+  if (route === "선택") return "어떻게 하시겠어요?";
   return "민간 소독·방역업체 연계";
 }
 
+/** 저위험 구간에서 시민이 고를 두 갈래. */
+function renderChoice(d) {
+  const n = d.companies.length;
+  return `
+    <div class="choice-grid">
+      <button class="choice-card" data-choose="자가대응">
+        <span class="choice-tag ok">출동 없음</span>
+        <b>그대로 두겠습니다</b>
+        <span>제거하지 않고 안전 수칙만 안내받습니다. 상황이 바뀌면 언제든 다시 신고하실 수 있습니다.</span>
+      </button>
+      <button class="choice-card" data-choose="방역업체">
+        <span class="choice-tag">유상 처리</span>
+        <b>그래도 불안해서 맡기겠습니다</b>
+        <span>${n ? `인근 소독·방역업체 ${n}곳에 매칭 요청을 보냅니다. 비용은 업체와 직접 조율하십니다.` : "인근에 연락 가능한 업체가 없어 즉시 매칭되지 않을 수 있습니다."}</span>
+      </button>
+    </div>`;
+}
+
+function renderSelfCare(sc) {
+  const li = (arr) => arr.map((t) => `<li>${escapeHtml(t)}</li>`).join("");
+  return `
+    <div class="evidence">${escapeHtml(sc.summary)}</div>
+
+    <h3 style="margin-top:18px">지켜주실 것</h3>
+    <ul class="guide-list">${li(sc.rules)}</ul>
+
+    <h3 style="margin-top:18px">이럴 때는 다시 신고해주세요</h3>
+    <ul class="guide-list warn">${li(sc.recall_when)}</ul>
+
+    <h3 style="margin-top:18px">혹시 쏘였다면</h3>
+    <ul class="guide-list">${li(sc.if_stung)}</ul>
+
+    <div class="alert danger">${escapeHtml(sc.emergency)}</div>`;
+}
+
 function renderAssess(d) {
+  state.assess = d;
   const rows = d.score.detail
     .map(
       (r) => `
@@ -387,7 +429,11 @@ function renderAssess(d) {
     .join("");
 
   let channel = "";
-  if (d.route === "119") {
+  if (d.route === "선택") {
+    channel = renderChoice(d);
+  } else if (d.route === "자가대응") {
+    channel = renderSelfCare(d.self_care);
+  } else if (d.route === "119") {
     channel = `
       <h3 style="margin-top:18px">자동 생성된 상황실 접수 요약</h3>
       <pre class="summary">${escapeHtml(d.report_summary || "")}</pre>`;
@@ -460,6 +506,29 @@ function renderAssess(d) {
       ${notes}
     </div>`;
 }
+
+/* 저위험 선택지 — 시민이 고른 결과를 최종 라우팅으로 확정한다 */
+$("assess-result").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-choose]");
+  if (!btn || !state.assess) return;
+
+  const chosen = btn.dataset.choose;
+  const d = state.assess;
+  d.route = chosen;
+  d.route_reason =
+    chosen === "자가대응"
+      ? "신고자가 '그대로 두겠다'를 선택해 출동 없이 안전 수칙 안내로 종결했습니다."
+      : "신고자가 '불안해서 맡기겠다'를 선택해 인근 소독·방역업체로 연계했습니다.";
+
+  try {
+    await BeeReports.setRoute(d.report_id, chosen, d.route_reason);
+  } catch (err) {
+    // 저장 실패해도 화면은 진행한다. 안내 자체가 더 중요하다.
+    console.warn(err);
+  }
+  renderAssess(d);
+  $("assess-result").scrollIntoView({ behavior: "smooth", block: "start" });
+});
 
 /* ─────────────────────────── 통계 ─────────────────────────── */
 

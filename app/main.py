@@ -25,6 +25,7 @@ from .schemas import (
     FireCenter,
     MessageRequest,
     MessageResponse,
+    RouteRequest,
     Slots,
     StartResponse,
     StatusRequest,
@@ -251,6 +252,7 @@ def assess(req: AssessRequest) -> AssessResponse:
         beekeeping_branch=out["beekeeping_branch"],
         fire_center=FireCenter(**out["fire_center"]) if out["fire_center"] else None,
         report_summary=out["report_summary"],
+        self_care=out["self_care"],
         notes=out["notes"],
     )
 
@@ -287,6 +289,14 @@ def update_status(report_id: str, req: StatusRequest) -> Dict[str, Any]:
     if req.status not in valid:
         raise HTTPException(status_code=400, detail="알 수 없는 상태입니다: {}".format(req.status))
     if not store.set_status(report_id, req.status, req.assigned):
+        raise HTTPException(status_code=404, detail="신고를 찾을 수 없습니다.")
+    return {"ok": True, "report": store.get_report(report_id)}
+
+
+@app.post("/api/reports/{report_id}/route")
+def update_route(report_id: str, req: RouteRequest) -> Dict[str, Any]:
+    """저위험 구간에서 신고자가 고른 선택지를 최종 라우팅으로 확정한다."""
+    if not store.set_route(report_id, req.route, req.reason):
         raise HTTPException(status_code=404, detail="신고를 찾을 수 없습니다.")
     return {"ok": True, "report": store.get_report(report_id)}
 

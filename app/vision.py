@@ -320,6 +320,26 @@ MOCK_SCENARIOS: Dict[str, Dict[str, Any]] = {
             ),
         },
     },
+    # 기획서 1.1의 대표 사례 — "아파트 베란다 구석의 작은 꿀벌 벌집".
+    # 저위험이면서 분봉이 아니라, 시민이 직접 고르는 선택지가 나오는 경로다.
+    "honeybee_small": {
+        "label": "베란다 구석의 작은 꿀벌집",
+        "hint": "손바닥만 한 흰 밀랍 판, 벌 몇 마리만 오감",
+        "result": {
+            "species_guess": "양봉꿀벌",
+            "risk_grade": "저위험",
+            "confidence": 0.86,
+            "is_swarm": False,
+            "estimated_nest_diameter_cm": 9.0,
+            "visible_bee_count_band": "1-5",
+            "evidence": (
+                "종이질 외피 없이 흰~노란 밀랍 판이 수직으로 늘어진 꿀벌 벌집입니다. "
+                "개체는 몸에 잔털이 많고 통통한 양봉꿀벌로 보이며, 드나드는 벌이 "
+                "몇 마리뿐이라 군체가 아직 작은 초기 단계입니다. 꿀벌은 먼저 "
+                "건드리지 않으면 공격하지 않습니다."
+            ),
+        },
+    },
     "paper_wasp_veranda": {
         "label": "베란다 방충망 밖 소형 개방형 벌집",
         "hint": "육각방이 그대로 보이는 우산 모양, 지름 8cm 정도",

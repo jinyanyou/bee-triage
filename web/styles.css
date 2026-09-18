@@ -376,10 +376,34 @@ select { min-width: 180px; }
 .route-banner.r119      { border-left-color: var(--risk-high); background: var(--risk-high-bg); }
 .route-banner.rprivate  { border-left-color: var(--risk-mid); background: var(--risk-mid-bg); }
 .route-banner.rbee      { border-left-color: var(--risk-low); background: var(--risk-low-bg); }
+.route-banner.rchoice   { border-left-color: var(--primary); background: var(--primary-soft); }
 .route-banner .big { font-size: 15.5px; font-weight: 700; letter-spacing: -0.015em; }
 .route-banner.r119 .big     { color: var(--risk-high); }
 .route-banner.rprivate .big { color: var(--risk-mid); }
 .route-banner.rbee .big     { color: var(--risk-low); }
+.route-banner.rchoice .big  { color: var(--primary); }
+
+/* ─────────────────────── 저위험 선택지 ─────────────────────── */
+.choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
+.choice-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  text-align: left; padding: 18px; border-radius: var(--radius);
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border-strong); cursor: pointer;
+}
+.choice-card:hover { border-color: var(--primary); background: var(--primary-soft); }
+.choice-card b { font-size: 14.5px; font-weight: 700; }
+.choice-card > span:last-child { font-size: 12.5px; color: var(--ink-2); line-height: 1.6; font-weight: 400; }
+.choice-tag {
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-sm);
+  background: var(--surface-3); color: var(--ink-2);
+}
+.choice-tag.ok { background: var(--risk-low-bg); color: var(--risk-low); }
+
+/* 자가 대응 안내 목록 */
+.guide-list { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.75; }
+.guide-list li { margin-bottom: 5px; }
+.guide-list.warn li::marker { color: var(--risk-mid); }
 .route-banner p { margin: 3px 0 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
 
 .score-ring { flex: none; text-align: center; min-width: 62px; }
@@ -490,4 +514,8 @@ tr.sel td { background: var(--primary-soft); }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+@media (max-width: 760px) {
+  .choice-grid { grid-template-columns: 1fr; }
 }

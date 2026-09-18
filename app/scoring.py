@@ -139,8 +139,17 @@ def decide_route(score: ScoreBreakdown, vision: VisionResult) -> Tuple[str, str]
             "양봉업자가 회수하면 벌통으로 살릴 수 있어 양봉협회 지회로 연계합니다."
         ).format(score.final_score)
 
-    # 4) 나머지는 민간 방역업체
+    # 4) 저위험 구간은 시민이 고른다.
+    #    "불안한지"는 주관적이라 시스템이 대신 정하지 않는다.
+    if score.final_score < config.SELF_CARE_OPTION_THRESHOLD:
+        return "선택", (
+            "최종 위험점수 {:.2f}로 당장 제거하지 않아도 안전에 큰 지장이 없는 단계입니다. "
+            "그대로 두고 안전 수칙만 지키실지, 그래도 불안하셔서 업체에 맡기실지 "
+            "직접 고르실 수 있습니다."
+        ).format(score.final_score)
+
+    # 5) 중위험대는 선택지 없이 업체로. 자극 시 공격하는 등급이라 방치를 권하지 않는다.
     return "방역업체", (
         "최종 위험점수 {:.2f}로 119 임계값 {:.2f} 미만입니다. 즉각적인 인명 위협 "
-        "단계가 아니라고 보고 인근 소독·방역업체로 우회합니다."
+        "단계는 아니지만 자극하면 쏘일 수 있어 인근 소독·방역업체로 연계합니다."
     ).format(score.final_score, config.ROUTE_119_THRESHOLD)
