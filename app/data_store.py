@@ -165,8 +165,11 @@ def nearest_companies(
         if d <= max_radius_km:
             scored.append({**c, "거리km": round(d, 2)})
 
-    # 1순위 거리, 2순위 보호복 보유 수(벌집 제거 대응 역량 대리지표)
-    scored.sort(key=lambda c: (c["거리km"], -c["보호복_수"]))
+    # 거리순. 장비 보유 수량(보호복·진공청소기)은 정렬에 쓰지 않는다.
+    # 연락가능 433곳 중 383곳(88%)이 보호복 5벌로 동일한데, 이는 소독업 등록 시
+    # 적어내는 기준값으로 보여 실제 대응 역량을 구분하지 못한다.
+    # 파일럿에서 업체별 벌집 제거 실적을 받아 대체할 항목이다.
+    scored.sort(key=lambda c: c["거리km"])
     return scored[:k]
 
 
