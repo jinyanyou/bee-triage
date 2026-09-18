@@ -49,6 +49,16 @@ PRICE_SCENARIOS_KRW = [50_000, 80_000, 120_000]
 # 소방청 통계에 이 구분이 없다. 정보공개청구 전까지는 범위로 둔다.
 DIVERSION_SCENARIOS = [0.30, 0.50, 0.70]
 
+# 우회 대상 중 '저위험'(선택지가 제시되는 구간, 위험점수 0.35 미만)의 비중.
+# 나머지는 중위험대라 선택지 없이 유상 처리로 간다.
+# 소방서에 "출동해보니 그냥 두셔도 된다고 안내하고 온 비율"을 물으면 좁힐 수 있다.
+LOW_RISK_SHARE = 0.40
+
+# 저위험 구간에서 '그래도 불안해서 맡기겠다'를 고르는 비율.
+# 자가 대응을 고르면 매출이 0이지만 소방력 절감 효과는 같다.
+# 이 값이 낮을수록 공익 가치는 커지고 사업 매출은 작아진다 — 본질적 긴장이다.
+PAID_CHOICE_SCENARIOS = [0.30, 0.50, 0.70]
+
 # 업체 1곳이 성수기에 하루 처리 가능한 벌집 제거 건수.
 # 소독 본업과 병행하므로 보수적으로 잡았다. 견적 전화에서 확인할 항목.
 CASES_PER_COMPANY_PER_DAY = 2.0
@@ -259,18 +269,37 @@ def sigungu_matrix(facts: Dict[str, Any]) -> List[Dict[str, Any]]:
 # 4. 수익 모델 3안
 # ============================================================================
 
+def paid_split(volume: float, paid_ratio: float) -> Dict[str, float]:
+    """우회 물량을 유상 처리와 자가 대응으로 가른다.
+
+    저위험 구간(LOW_RISK_SHARE)만 신고자가 고르고, 중위험대는 전부 유상이다.
+    자가 대응은 매출이 0이지만 소방력 절감 효과는 유상 처리와 동일하다.
+    """
+    choice_volume = volume * LOW_RISK_SHARE          # 선택지가 제시되는 물량
+    auto_paid = volume * (1 - LOW_RISK_SHARE)        # 중위험대 — 선택 없이 유상
+    paid = auto_paid + choice_volume * paid_ratio
+    self_care = choice_volume * (1 - paid_ratio)
+    return {"paid": paid, "self_care": self_care, "choice_volume": choice_volume}
+
+
 def revenue_models(facts: Dict[str, Any], sizing: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """매출은 **유상 처리 건수**에만 붙는다. 자가 대응은 0원이다."""
     rows = []
     for div in DIVERSION_SCENARIOS:
         volume = sizing["daegu_gb"] * div
-        for price in PRICE_SCENARIOS_KRW:
-            rows.append({
-                "우회율": div,
-                "단가": price,
-                "매칭수수료": int(volume * price * MATCHING_FEE_RATE),
-                "업체구독": int(len(facts["contactable"]) * SUBSCRIPTION_KRW_PER_MONTH * 12),
-                "지자체위탁_2곳": MUNICIPAL_CONTRACT_KRW_PER_YEAR * 2,
-            })
+        for paid_ratio in PAID_CHOICE_SCENARIOS:
+            split = paid_split(volume, paid_ratio)
+            for price in PRICE_SCENARIOS_KRW:
+                rows.append({
+                    "우회율": div,
+                    "유상선택률": paid_ratio,
+                    "단가": price,
+                    "유상건수": int(split["paid"]),
+                    "자가대응건수": int(split["self_care"]),
+                    "매칭수수료": int(split["paid"] * price * MATCHING_FEE_RATE),
+                    "업체구독": int(len(facts["contactable"]) * SUBSCRIPTION_KRW_PER_MONTH * 12),
+                    "지자체위탁_2곳": MUNICIPAL_CONTRACT_KRW_PER_YEAR * 2,
+                })
     return rows
 
 
@@ -279,15 +308,25 @@ def revenue_models(facts: Dict[str, Any], sizing: Dict[str, Any]) -> List[Dict[s
 # ============================================================================
 
 def public_value(sizing: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """소방력 절감은 유상·자가 대응을 가리지 않는다. 둘 다 119 출동을 만들지 않는다.
+
+    다만 자가 대응은 시민이 돈도 내지 않으므로 **시민 비용 절감**이라는 가치가
+    추가로 생긴다. 사업 매출과 반대 방향이라 정직하게 같이 적는다.
+    """
     rows = []
+    mid_price = PRICE_SCENARIOS_KRW[len(PRICE_SCENARIOS_KRW) // 2]
     for div in DIVERSION_SCENARIOS:
         diverted = sizing["daegu_gb"] * div
-        rows.append({
-            "우회율": div,
-            "우회건수": int(diverted),
-            "절감_출동시간": int(diverted * HOURS_PER_DISPATCH),
-            "절감_인시": int(diverted * HOURS_PER_DISPATCH * CREW_SIZE),
-        })
+        for paid_ratio in PAID_CHOICE_SCENARIOS:
+            split = paid_split(diverted, paid_ratio)
+            rows.append({
+                "우회율": div,
+                "유상선택률": paid_ratio,
+                "우회건수": int(diverted),
+                "절감_인시": int(diverted * HOURS_PER_DISPATCH * CREW_SIZE),
+                "자가대응건수": int(split["self_care"]),
+                "시민비용절감": int(split["self_care"] * mid_price),
+            })
     return rows
 
 
@@ -329,6 +368,10 @@ def build_report(facts, sizing, capacity, matrix, revenue, value) -> str:
         " / ".join("{:.0%}".format(d) for d in DIVERSION_SCENARIOS)))
     a("| **가정** | 업체 1곳 일 처리량 | {}건 | **미실측** — 견적 시 확인 |".format(
         CASES_PER_COMPANY_PER_DAY))
+    a("| **가정** | 저위험 구간 비중 | {:.0%} | **미실측** — 소방서 문의로 좁힘 |".format(
+        LOW_RISK_SHARE))
+    a("| **가정** | 유상 선택률 | {} | **미실측** — 시민 선택 행동 |".format(
+        " / ".join("{:.0%}".format(r) for r in PAID_CHOICE_SCENARIOS)))
     a("")
 
     a("## 1. 시장 규모 (TAM / SAM / SOM)")
@@ -411,26 +454,56 @@ def build_report(facts, sizing, capacity, matrix, revenue, value) -> str:
 
     a("## 4. 수익 모델")
     a("")
-    a("| 우회율 | 단가 | ① 매칭 수수료({:.0%}) | ② 업체 구독({:,}원/월) | ③ 지자체 위탁(2곳) |".format(
+    a("### 선택 구조가 매출에 미치는 영향")
+    a("")
+    a("저위험 구간(위험점수 0.35 미만, 우회 물량의 {:.0%} 가정)은 신고자가 직접 고릅니다.".format(
+        LOW_RISK_SHARE))
+    a("**자가 대응을 고르면 매출은 0원이지만 소방력 절감 효과는 유상 처리와 같습니다.**")
+    a("공익 가치와 사업 매출이 반대 방향으로 움직이는 구조라, 이 긴장을 숨기지 않고 드러냅니다.")
+    a("")
+    a("| 우회율 | 유상 선택률 | 유상 건수 | 자가 대응 건수 |")
+    a("|---|---|---|---|")
+    seen = set()
+    for r in revenue:
+        key = (r["우회율"], r["유상선택률"])
+        if key in seen:
+            continue
+        seen.add(key)
+        a("| {:.0%} | {:.0%} | {:,}건 | {:,}건 |".format(
+            r["우회율"], r["유상선택률"], r["유상건수"], r["자가대응건수"]))
+    a("")
+    a("### 모델별 연 매출 (단가 {:,}원 기준)".format(PRICE_SCENARIOS_KRW[1]))
+    a("")
+    a("| 우회율 | 유상 선택률 | ① 매칭 수수료({:.0%}) | ② 업체 구독({:,}원/월) | ③ 지자체 위탁(2곳) |".format(
         MATCHING_FEE_RATE, SUBSCRIPTION_KRW_PER_MONTH))
     a("|---|---|---|---|---|")
     for r in revenue:
-        a("| {:.0%} | {:,}원 | {} | {} | {} |".format(
-            r["우회율"], r["단가"], won(r["매칭수수료"]), won(r["업체구독"]), won(r["지자체위탁_2곳"])))
+        if r["단가"] != PRICE_SCENARIOS_KRW[1]:
+            continue
+        a("| {:.0%} | {:.0%} | {} | {} | {} |".format(
+            r["우회율"], r["유상선택률"], won(r["매칭수수료"]),
+            won(r["업체구독"]), won(r["지자체위탁_2곳"])))
     a("")
-    a("②는 우회율·단가와 무관해 값이 같습니다. 초기 현금흐름이 안정적이지만")
-    a("업체가 효용을 먼저 체감해야 하므로, **①로 시작해 ②③으로 전환**하는 순서가 현실적입니다.")
+    a("①은 유상 선택률에 직접 흔들립니다. 반면 ②③은 흔들리지 않습니다.")
+    a("**자가 대응이 많아질수록 ①은 줄지만 ③의 명분은 커집니다** — 지자체 입장에서는")
+    a("출동을 가장 많이 줄여주는 경로이기 때문입니다. 따라서 **①로 시작하되 ③으로**")
+    a("**무게를 옮기는 것**이 이 서비스의 구조에 맞습니다.")
     a("")
 
     a("## 5. 공익 가치 — 소방력 절감")
     a("")
     a("출동 1건당 {}시간, {}인 1팀 기준(기획서 1.2).".format(HOURS_PER_DISPATCH, CREW_SIZE))
     a("")
-    a("| 우회율 | 우회 건수 | 절감 출동시간 | 절감 인시 |")
-    a("|---|---|---|---|")
+    a("| 우회율 | 유상 선택률 | 우회 건수 | 절감 인시 | 자가 대응 | 시민 비용 절감 |")
+    a("|---|---|---|---|---|---|")
     for r in value:
-        a("| {:.0%} | {:,}건 | {:,}시간 | **{:,}인시** |".format(
-            r["우회율"], r["우회건수"], r["절감_출동시간"], r["절감_인시"]))
+        a("| {:.0%} | {:.0%} | {:,}건 | **{:,}인시** | {:,}건 | {} |".format(
+            r["우회율"], r["유상선택률"], r["우회건수"], r["절감_인시"],
+            r["자가대응건수"], won(r["시민비용절감"])))
+    a("")
+    a("**절감 인시는 유상 선택률과 무관합니다.** 자가 대응이든 유상 처리든 119 출동을")
+    a("만들지 않는 것은 같기 때문입니다. 반면 **시민 비용 절감**은 자가 대응에서만")
+    a("발생합니다 — 시민이 돈을 내지 않아도 되는 건이라는 뜻입니다.")
     a("")
     a("이 표는 수익이 아니라 **지자체를 설득하는 근거**입니다. 위탁 운영비(③)의")
     a("정당성이 여기서 나옵니다.")
@@ -441,6 +514,8 @@ def build_report(facts, sizing, capacity, matrix, revenue, value) -> str:
     a("- **건당 단가 미실측.** 업체 견적 3~5곳으로 확정해야 합니다. (`interview_guide.md`)")
     a("- **비긴급 비율 미실측.** 소방청 통계에 긴급/비긴급 구분이 없습니다.")
     a("  정보공개청구로 건별 데이터를 받으면 범위를 좁힐 수 있습니다.")
+    a("- **저위험 구간 비중·유상 선택률 미실측.** 전자는 소방서 문의로, 후자는")
+    a("  업체가 이미 받고 있는 '작은 벌집인데도 불안해서 부르는 고객' 비율로 근사할 수 있습니다.")
     a("- **월별 분포 미확보.** 성수기 비중 {:.0%}는 가정입니다.".format(PEAK_SHARE_OF_YEAR))
     a("- **시군구별 출동 통계 비공개.** 안전센터 수를 대리지표로 썼습니다.")
     a("- 소독업 인허가가 곧 벌집 제거 수행 가능을 뜻하지는 않습니다.")
