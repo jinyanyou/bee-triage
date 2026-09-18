@@ -1,0 +1,56 @@
+[
+  {
+    "file": "hornet_nest_closed_wall.jpg",
+    "risk_grade": "고위험",
+    "species": "등검은말벌",
+    "note": "벽면에 붙은 종이질 폐쇄형 집. 외피가 내부 육각방을 완전히 덮고 출입구가 한 곳"
+  },
+  {
+    "file": "hornet_nest_indoor.jpg",
+    "risk_grade": "고위험",
+    "species": "등검은말벌",
+    "note": "실내 천장 모서리에 매달린 폐쇄형 집. 사람 동선과 겹쳐 위험도가 높다"
+  },
+  {
+    "file": "hornet_tree_hole.jpg",
+    "risk_grade": "고위험",
+    "species": "장수말벌",
+    "note": "나무 구멍 입구에 모인 대형 개체. 집 자체는 은폐되어 보이지 않음"
+  },
+  {
+    "file": "paperwasp_nest_eaves.jpg",
+    "risk_grade": "중위험",
+    "species": "쌍살벌류",
+    "note": "건물 구조물에 붙은 지름 10cm 내외 소형 개방형 집"
+  },
+  {
+    "file": "paperwasp_nest_open.jpg",
+    "risk_grade": "중위험",
+    "species": "쌍살벌류",
+    "note": "외피 없이 육각방이 그대로 노출된 개방형 집과 개체"
+  },
+  {
+    "file": "parapolybia_comb.jpg",
+    "risk_grade": "중위험",
+    "species": "뱀허물쌍살벌",
+    "note": "육각방이 드러난 길쭉한 개방형 집. 다리를 늘어뜨린 가는 체형"
+  },
+  {
+    "file": "honeybee_swarm_wall.jpg",
+    "risk_grade": "저위험",
+    "species": "양봉꿀벌(분봉)",
+    "note": "건물 외벽에 벌이 뭉쳐 매달린 분봉 덩어리. 집 구조물이 없음"
+  },
+  {
+    "file": "honeybee_swarm_branch.jpg",
+    "risk_grade": "저위험",
+    "species": "양봉꿀벌(분봉)",
+    "note": "나뭇가지에 원뿔 모양으로 뭉친 분봉. 회수 가치 있음"
+  },
+  {
+    "file": "unreadable_distant.jpg",
+    "risk_grade": "판별불가",
+    "species": "",
+    "note": "하늘 배경 원거리 촬영으로 형태를 읽을 수 없음"
+  }
+]

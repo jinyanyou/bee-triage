@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>소방 관제 — 벌집 신고 사전 트리아지</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="/static/styles.css?v=6">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="brand">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.6"/><path d="M12 12 18.4 5.6"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg></span>
+      <div>
+        <h1>소방 관제 대시보드</h1>
+        <p class="sub">고위험·판별불가 건만 필터링되어 접수됩니다</p>
+      </div>
+      <nav class="nav">
+        <a href="/">시민 신고</a>
+        <a href="/dashboard" class="on">소방 관제</a>
+        <a href="/partner">업체·양봉인</a>
+      </nav>
+    </div>
+    <div class="meta">
+      <span class="meta-line" id="refresh-line"></span>
+      <button class="ghost" id="refresh-btn">새로고침</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h2>접수 현황</h2>
+        <p class="hint">소방력 재배치 효과를 우회율로 측정합니다. 사후 확인이 쌓이면 판별 정확도가 함께 표시됩니다.</p>
+      </div>
+    </div>
+    <div class="kpi-row" id="kpi-row"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h2>신고 목록</h2>
+        <p class="hint">행을 누르면 상황실 접수 요약과 판정 근거가 열립니다.</p>
+      </div>
+    </div>
+
+    <div class="filters" id="filters">
+      <button class="chip on" data-filter="all">전체</button>
+      <button class="chip" data-filter="119">119 연계만</button>
+      <button class="chip" data-filter="wait">확인 대기</button>
+      <button class="chip" data-filter="고위험">고위험</button>
+      <button class="chip" data-filter="판별불가">판별불가</button>
+      <button class="chip" data-filter="diverted">민간 우회</button>
+    </div>
+
+    <div id="list"></div>
+    <div class="detail" id="detail"></div>
+  </section>
+
+</main>
+
+<footer class="wrap foot">
+  <p>AI 판정은 참고 정보이며 최종 판단은 상황실·현장 대원이 합니다 · 신고 보존기간 <span id="retention">-</span>일 후 자동 파기</p>
+</footer>
+
+<script src="/static/store-client.js?v=6"></script>
+<script src="/static/dashboard.js?v=6"></script>
+</body>
+</html>

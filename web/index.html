@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>벌집 신고 사전 트리아지</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="/static/styles.css?v=6">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="brand">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 20.5 7.25v9.5L12 21.5 3.5 16.75v-9.5z"/><path d="M12 8.2 16.3 10.6v4.8L12 17.8 7.7 15.4v-4.8z"/></svg></span>
+      <div>
+        <h1>벌집 신고 사전 트리아지</h1>
+        <p class="sub">AI 문진 → 사진 위험도 판별 → 위험도 기반 자동 매칭</p>
+      </div>
+      <nav class="nav">
+        <a href="/" class="on">시민 신고</a>
+        <a href="/dashboard">소방 관제</a>
+        <a href="/partner">업체·양봉인</a>
+      </nav>
+    </div>
+    <div class="meta" id="meta-box">
+      <span class="badge" id="mode-badge">확인 중…</span>
+      <span class="meta-line" id="data-line"></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ───────────────────────── 동의 ───────────────────────── -->
+  <section class="card" id="step0">
+    <div class="card-head">
+      <span class="step-no">0</span>
+      <div>
+        <h2>개인정보 처리 동의</h2>
+        <p class="hint">위험도 판별에 꼭 필요한 정보만 받고, 사진은 저장하지 않습니다.</p>
+      </div>
+    </div>
+
+    <div class="consent">
+      <h3>수집·이용 항목</h3>
+      <ul>
+        <li><b>벌집 사진</b> — 위험도 판별에만 사용하며 <b>서버에 저장하지 않습니다.</b> 판별 후 즉시 폐기됩니다.</li>
+        <li><b>신고 위치(위·경도)</b> — 관할 소방서와 인근 업체 매칭에만 사용합니다.</li>
+        <li><b>문진 응답</b> — 벌집 위치·크기·발견 시점·공격성·체감 위험</li>
+        <li>보존기간: <b id="retention-days">-</b>일 경과 시 자동 파기</li>
+      </ul>
+      <label>
+        <input type="checkbox" id="consent-check">
+        <span>위 항목의 수집·이용에 동의합니다. AI 판정은 참고 정보이며 최종 판단은 119 상황실·현장 대원이 한다는 점을 확인했습니다.</span>
+      </label>
+      <div class="row">
+        <button id="consent-btn" disabled>동의하고 신고 시작</button>
+        <span class="sub-detail">동의하지 않으셔도 119(국번 없이 119)로 바로 신고하실 수 있습니다.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── 1단계 ───────────────────────── -->
+  <section class="card locked" id="step1">
+    <div class="card-head">
+      <span class="step-no">1</span>
+      <div>
+        <h2>챗봇 1차 문진</h2>
+        <p class="hint">필수 슬롯 5개가 모두 채워질 때까지 다음 단계로 넘어가지 않습니다 (FSM 하드코딩).</p>
+      </div>
+      <span class="engine-tag" id="engine-tag"></span>
+    </div>
+
+    <div class="triage-grid">
+      <div class="chat" id="chat" aria-live="polite"></div>
+
+      <aside class="slots">
+        <div class="slots-head">
+          <strong>수집된 슬롯</strong>
+          <span id="slot-count">0 / 5</span>
+        </div>
+        <div class="bar"><div class="bar-fill" id="slot-bar"></div></div>
+        <ul class="slot-list" id="slot-list"></ul>
+      </aside>
+    </div>
+
+    <form class="chat-form" id="chat-form" autocomplete="off">
+      <input type="text" id="chat-input" placeholder="답변을 입력하세요" disabled>
+      <button type="submit" id="chat-send" disabled>보내기</button>
+      <button type="button" class="ghost" id="restart-btn">처음부터</button>
+    </form>
+  </section>
+
+  <!-- ───────────────────────── 2단계 ───────────────────────── -->
+  <section class="card locked" id="step2">
+    <div class="card-head">
+      <span class="step-no">2</span>
+      <div>
+        <h2>사진 기반 위험도 판별</h2>
+        <p class="hint">
+          신뢰도 <b id="conf-th">70%</b> 미만이면 저위험으로 단정하지 않고 119 확인 큐로 보냅니다.
+          <span id="fewshot-tag"></span>
+        </p>
+      </div>
+    </div>
+
+    <div class="photo-row">
+      <label class="upload" id="upload-label">
+        <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp" hidden>
+        <span class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5h3.2l1.4-2h7.8l1.4 2H20a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 0-1z"/><circle cx="12" cy="13" r="3.4"/></svg></span>
+        <span class="upload-text">신고 사진 업로드</span>
+        <span class="upload-sub">JPG · PNG · WebP / 8MB 이하<br>사진은 저장되지 않습니다</span>
+      </label>
+
+      <div class="scenarios">
+        <p class="scen-title">또는 데모 시나리오로 시연</p>
+        <div id="scenario-list"></div>
+      </div>
+    </div>
+
+    <div id="vision-result"></div>
+  </section>
+
+  <!-- ───────────────────────── 3단계 ───────────────────────── -->
+  <section class="card locked" id="step3">
+    <div class="card-head">
+      <span class="step-no">3</span>
+      <div>
+        <h2>스코어링 &amp; 자동 매칭</h2>
+        <p class="hint">최종위험점수 = 비전 0.60 + 문진 0.25 + 크기 0.15 (기획서 3.3)</p>
+      </div>
+    </div>
+
+    <div class="loc-row">
+      <label for="geo-input">신고 위치</label>
+      <div class="geo-wrap">
+        <input type="text" id="geo-input" placeholder="주소·지명 검색 (예: 수성구, 하양읍) 또는 좌표 붙여넣기" autocomplete="off">
+        <div class="geo-results" id="geo-results" hidden></div>
+      </div>
+      <select id="loc-select"></select>
+      <button id="assess-btn" class="primary">위험도 판정 및 매칭</button>
+    </div>
+    <p class="sub-detail" id="loc-current" style="margin-top:8px"></p>
+
+    <div id="assess-result"></div>
+  </section>
+
+  <section class="card" id="step4">
+    <div class="card-head">
+      <div>
+        <h2>지자체 모니터링 (참고)</h2>
+        <p class="hint">1팀이 정제한 소방청 통계연보 기반 출동 추이</p>
+      </div>
+    </div>
+    <div id="stats-box" class="stats-box"></div>
+  </section>
+
+</main>
+
+<footer class="wrap foot">
+  <p>2026 AI·디지털 기반 사회문제 해결 챌린지 · 프로토타입 (실제 119 전송 기능 없음)</p>
+</footer>
+
+<script src="/static/store-client.js?v=6"></script>
+<script src="/static/app.js?v=6"></script>
+</body>
+</html>

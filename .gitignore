@@ -1,0 +1,24 @@
+# 비밀
+.env
+.env.local
+
+# 파이썬
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 런타임 산출물 (로컬 SQLite)
+var/
+
+# 평가 실행 결과
+eval/report.md
+eval/results.json
+
+# 에디터
+.vscode/
+.idea/
+.DS_Store
+
+# Vercel
+.vercel

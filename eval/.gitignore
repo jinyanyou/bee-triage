@@ -1,0 +1,4 @@
+# 실행 결과물만 제외한다.
+# images/ 와 labels.csv 는 평가 표본이므로 저장소에 포함한다.
+report.md
+results.json

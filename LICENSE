@@ -1,0 +1,35 @@
+MIT License
+
+Copyright (c) 2026 벌집 신고 사전 트리아지 팀
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+이 MIT 라이선스는 **이 저장소의 소스 코드에만** 적용됩니다.
+아래 자료는 각자의 라이선스를 따릅니다.
+
+- `reference/`, `eval/images/` 의 사진
+  iNaturalist 관측 사진이며 CC0 / CC BY / CC BY-NC 입니다.
+  개별 라이선스와 저작자 표시는 `CREDITS.md`를 보세요.
+  **CC BY-NC 사진은 비영리 조건**이므로 상업적 이용 시 교체가 필요합니다.
+
+- `data/` 의 데이터셋
+  행정안전부 소독업 조회서비스, 소방청 119안전센터 현황·통계연보,
+  한국양봉협회 공개 자료를 가공한 것입니다. 출처는 `data/README.md` 참고.

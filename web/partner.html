@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>업체·양봉인 — 벌집 신고 사전 트리아지</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="/static/styles.css?v=6">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="brand">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5h4l3 3"/><path d="M21 11.5h-4l-3 3"/><path d="M7 11.5 10.5 8h3L17 11.5"/><path d="M10 17.5h4"/></svg></span>
+      <div>
+        <h1>업체·양봉인 수락 화면</h1>
+        <p class="sub">거리순으로 매칭된 비긴급 건을 수락하고 처리 결과를 남깁니다</p>
+      </div>
+      <nav class="nav">
+        <a href="/">시민 신고</a>
+        <a href="/dashboard">소방 관제</a>
+        <a href="/partner" class="on">업체·양봉인</a>
+      </nav>
+    </div>
+    <div class="meta">
+      <span class="meta-line" id="refresh-line"></span>
+      <button class="ghost" id="refresh-btn">새로고침</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h2>매칭 요청</h2>
+        <p class="hint">
+          정식 서비스에서는 카카오 알림톡으로 최대 3곳에 동시 발송되고, 먼저 수락한 곳이 배정됩니다.
+          프로토타입에서는 이 화면이 알림톡을 대신합니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="filters" id="filters">
+      <button class="chip on" data-filter="pending">수락 대기</button>
+      <button class="chip" data-filter="mine">수락한 건</button>
+      <button class="chip" data-filter="all">전체</button>
+    </div>
+
+    <div id="list"></div>
+  </section>
+
+</main>
+
+<footer class="wrap foot">
+  <p>수락 시 신고자 연락처가 제공되며, 처리 후 실제 벌 종을 남겨주시면 판별 모델이 개선됩니다</p>
+</footer>
+
+<script src="/static/store-client.js?v=6"></script>
+<script src="/static/partner.js?v=6"></script>
+</body>
+</html>
