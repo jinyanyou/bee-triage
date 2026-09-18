@@ -32,7 +32,7 @@ from .schemas import (
 )
 
 app = FastAPI(
-    title="벌집 신고 사전 트리아지 프로토타입",
+    title="벌집 신고 사전 분류 프로토타입",
     description="AI 문진 → 사진 위험도 판별 → 위험도 기반 자동 매칭",
     version="0.2.0",
 )
